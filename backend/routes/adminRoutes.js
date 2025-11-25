@@ -3,7 +3,8 @@ import User from "../models/User.js";
 import Department from "../models/Department.js";
 import { verifyToken, adminOnly } from "../middleware/auth.js";
 import mongoose from "mongoose";
-import nodemailer from "nodemailer"; 
+import nodemailer from "nodemailer";
+import bcrypt from "bcryptjs"; 
 
 const router = express.Router();
 
@@ -53,6 +54,16 @@ router.post("/departments/create", verifyToken, adminOnly, async (req, res) => {
   }
 });
 
+
+router.get("/departments/all", verifyToken, adminOnly, async (req, res) => {
+  try {
+    const depts = await Department.find().sort({ name: 1 }).select("_id name type");
+    res.json({ departments: depts });
+  } catch (err) {
+    console.error("Get all departments error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 /* ------------------------------------------------------------------
    USER STORY 4 
@@ -185,16 +196,6 @@ router.delete("/departments/:id", verifyToken, adminOnly, async (req, res) => {
 
 
 
-router.get("/departments/all", verifyToken, adminOnly, async (req, res) => {
-  try {
-    const depts = await Department.find().sort({ name: 1 }).select("_id name type");
-    res.json({ departments: depts });
-  } catch (err) {
-    console.error("Get all departments error:", err.message);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
 /* CREATE USER (Admin) */
 
 router.post("/users/create", verifyToken, adminOnly, async (req, res) => {
@@ -273,7 +274,7 @@ async function sendWelcomeEmail(toEmail, userName, password) {
     from: process.env.EMAIL_FROM || "no-reply@university.com",
     to: toEmail,
     subject: "Welcome — your account credentials",
-    text: `Hi ${name},
+    text: `Hi ${userName},
 
 Your account has been created.
 
